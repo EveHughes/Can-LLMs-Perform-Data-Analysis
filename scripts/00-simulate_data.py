@@ -1,9 +1,8 @@
 #### Preamble ####
-# Purpose: Simulates a dataset of Australian electoral divisions, including the 
-  # state and party that won each division.
-# Author: Rohan Alexander
-# Date: 26 September 2024
-# Contact: rohan.alexander@utoronto.ca
+# Purpose: Simulates response rubric grades for LLM paper
+# Author: Evelyn Hughes
+# Date: 13 May 2025
+# Contact: evelyn.hughes@utoronto.ca
 # License: MIT
 # Pre-requisites: 
   # - `polars` must be installed (pip install polars)
@@ -15,34 +14,58 @@ import polars as pl
 import numpy as np
 np.random.seed(853)
 
-
 #### Simulate data ####
-# State names
-states = [
-    "New South Wales", "Victoria", "Queensland", "South Australia", 
-    "Western Australia", "Tasmania", "Northern Territory", 
-    "Australian Capital Territory"
-]
 
-# Political parties
-parties = ["Labor", "Liberal", "Greens", "National", "Other"]
+#constants
+MODELS = ["ChatGPT 3.0", "ChatGPT 4.0", "Gemini", "Claude"]
+CODE_RUBRIC = ["Replicable", "Tests"]
+PAPER_RUBRIC = ["Prose", "References", "Introduction", "Data", "Abstract", "Title", "Figures"]
+AGGREGATED_RUBRIC = ["Code", "Paper", "Total"]
 
-# Probabilities for state and party distribution
-state_probs = [0.25, 0.25, 0.15, 0.1, 0.1, 0.1, 0.025, 0.025]
-party_probs = [0.40, 0.40, 0.05, 0.1, 0.05]
+# Generate the 
+#creating dictionary w/ columns
+scores = dict()
+scores["Model"] = MODELS
+for column in CODE_RUBRIC:
+  scores[column] = [0,]*len(MODELS)
+for column in PAPER_RUBRIC:
+  scores[column] = [0, ]*len(MODELS)
 
-# Generate the data using numpy and polars
-divisions = [f"Division {i}" for i in range(1, 152)]
-states_sampled = np.random.choice(states, size=151, replace=True, p=state_probs)
-parties_sampled = np.random.choice(parties, size=151, replace=True, p=party_probs)
+#generating random values for each rubric category, aggregate for total
+for i in range(len(MODELS)):
+  for category in CODE_RUBRIC:
+    score = int(3*np.random.rand())
+    scores[category][i] = score
+  for category in PAPER_RUBRIC:
+    score = int(3*np.random.rand())
+    scores[category][i] = score
 
-# Create a polars DataFrame
-analysis_data = pl.DataFrame({
-    "division": divisions,
-    "state": states_sampled,
-    "party": parties_sampled
-})
+#saves raw generated data
+scores_data = pl.DataFrame(scores)
+scores_data.write_csv("data/00-simulated_data/raw_grade.csv")
 
+## Create Analysis Data ##
 
-#### Save data ####
-analysis_data.write_csv("data/00-simulated_data/simulated_data.csv")
+aggregated_scores = dict()
+aggregated_scores["Model"] = MODELS
+for column in AGGREGATED_RUBRIC:
+  aggregated_scores[column] = [0,]*len(MODELS)
+
+#aggregate code score
+for i in range(len(MODELS)):
+  code_score = 0
+  paper_score = 0
+  for category in CODE_RUBRIC:
+    code_score += scores[category][i]
+  aggregated_scores["Code"][i] = code_score
+  for category in PAPER_RUBRIC:
+    paper_score += scores[category][i]
+  aggregated_scores["Paper"][i] = paper_score
+  aggregated_scores["Total"][i] = paper_score + code_score
+
+#saves raw generated data
+aggregated_scores = pl.DataFrame(aggregated_scores)
+aggregated_scores.write_csv("data/00-simulated_data/aggregated_scores.csv")
+  
+    
+
